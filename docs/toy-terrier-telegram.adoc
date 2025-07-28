@@ -8,7 +8,21 @@
 == Общее описание
 
 === Назначение
-Telegram-бот для автоматического мониторинга новостей о фигурках с форума https://bbs.bbicn.com/ и Facebook страницы https://www.facebook.com/hottoys с отправкой уведомлений всем подписчикам о новых постах и темах.
+Telegram-бот для автоматического мониторинга новостей о фигурках с отправкой уведомлений всем подписчикам о новых постах и темах.
+
+*Целевые источники для мониторинга:*
+
+* **BBS BBICN Forum** (https://bbs.bbicn.com/) - Специализированный форум коллекционеров фигурок
+  - Обсуждения новых релизов от различных производителей
+  - Обзоры и фотографии коллекционных фигурок
+  - Информация о предзаказах и датах выхода
+  - Пользовательские отзывы и рекомендации
+
+* **Facebook Hot Toys** (https://www.facebook.com/hottoys) - Официальная страница производителя
+  - Официальные анонсы новых фигурок от Hot Toys
+  - Высококачественные фотографии продукции
+  - Превью и тизеры предстоящих релизов
+  - Обновления статуса разработки и производства
 
 === Цель проекта
 Создать Telegram-бота, который будет регулярно парсить целевые источники, извлекать информацию о новых темах и постах, и автоматически рассылать уведомления всем подписанным пользователям в реальном времени.
@@ -72,27 +86,24 @@ Telegram-бот для автоматического мониторинга н�
 === Технологический стек
 
 ==== Backend (Go)
-* *Язык*: Go 1.21+
-* *Web Framework*: Echo v4 (для webhook и admin panel)
-* *Telegram Bot API*: github.com/go-telegram-bot-api/telegram-bot-api/v5
+* *Язык*: Go 1.24+
+* *Web Framework*: Echo v4 (для admin panel и health endpoints)
+* *Telegram Bot API*: github.com/go-telegram-bot-api/telegram-bot-api/v5 (polling mode)
 * *HTTP Client*: Standard net/http + context
 * *HTML Parser*: github.com/PuerkitoBio/goquery
 * *Social Media*: Facebook Graph API client
 * *Database*: PostgreSQL 15+
 * *ORM/Query Builder*: sqlc для type-safe SQL
 * *Migrations*: golang-migrate
-* *Cache*: Redis 7+
-* *Queue*: Redis для очереди сообщений
 * *Configuration*: github.com/spf13/viper
 * *Logging*: github.com/rs/zerolog
 * *Monitoring*: Prometheus + Grafana
 
 ==== Инфраструктура
 * *Контейнеризация*: Docker + Docker Compose
-* *Reverse Proxy*: Nginx (для webhook)
 * *Environment*: Docker containers
 * *CI/CD*: GitHub Actions
-* *SSL*: Let's Encrypt для webhook
+* *Admin Panel*: Веб-интерфейс для администрирования
 
 === Архитектура системы
 
@@ -118,10 +129,13 @@ toy-terrier-telegram/
 │   │   ├── keyboard/
 │   │   │   ├── inline.go
 │   │   │   └── reply.go
+│   │   ├── polling/
+│   │   │   ├── updater.go
+│   │   │   └── processor.go
 │   │   └── bot.go
-│   ├── webhook/
+│   ├── server/
 │   │   ├── handlers/
-│   │   │   ├── telegram.go
+│   │   │   ├── admin.go
 │   │   │   └── health.go
 │   │   └── server.go
 │   ├── services/
@@ -138,8 +152,6 @@ toy-terrier-telegram/
 │   │   ├── subscription/
 │   │   │   ├── manager.go
 │   │   │   └── validator.go
-│   │   ├── cache/
-│   │   │   └── redis_cache.go
 │   │   └── scheduler/
 │   │       └── cron_scheduler.go
 │   ├── models/
@@ -232,7 +244,6 @@ package "Telegram Users" {
 
 package "Telegram Platform" {
     [Telegram Bot API] as TelegramAPI
-    [Webhook] as TelegramWebhook
 }
 
 package "Web Interface" {
@@ -241,13 +252,14 @@ package "Web Interface" {
 }
 
 package "API Layer (Echo Framework)" {
-    [Webhook Handler] as WebhookHandler
     [Admin Handlers] as AdminHandlers
     [Health Handlers] as HealthHandlers
     [Auth Middleware] as AuthMiddleware
 }
 
 package "Bot Logic Layer" {
+    [Polling Service] as PollingService
+    [Update Processor] as UpdateProcessor
     [Command Handlers] as CommandHandlers
     [Subscription Manager] as SubManager
     [Admin Commands] as AdminCommands
@@ -264,8 +276,6 @@ package "Business Logic Layer" {
 
 package "Data Layer" {
     [PostgreSQL] as PostgreSQL
-    [Redis Cache] as Redis
-    [Redis Queue] as RedisQueue
     [sqlc Generated] as SQLC
     [Migrations] as Migrate
 }
@@ -283,15 +293,16 @@ Admins --> TelegramAPI
 Admins --> AdminPanel
 
 ' Telegram Platform connections
-TelegramAPI --> TelegramWebhook
-TelegramWebhook --> WebhookHandler
+PollingService --> TelegramAPI : GetUpdates
+TelegramAPI --> PollingService : Updates
 
 ' Web Interface connections
 AdminPanel --> AdminHandlers
 PrivacyPage --> HealthHandlers
 
 ' API Layer connections
-WebhookHandler --> CommandHandlers
+PollingService --> UpdateProcessor
+UpdateProcessor --> CommandHandlers
 AdminHandlers --> SubManager
 AdminHandlers --> Scraper
 AuthMiddleware --> AdminHandlers
@@ -307,7 +318,6 @@ BotRateLimit --> CommandHandlers
 NotificationService --> MessageFormatter
 NotificationService --> QueueManager
 NotificationService --> TelegramAPI
-QueueManager --> RedisQueue
 Scraper --> BBSForum
 Scraper --> FacebookHotToys
 Scraper --> SQLC
@@ -317,8 +327,6 @@ Scheduler --> NotificationService
 ' Data Layer connections
 SQLC --> PostgreSQL
 Migrate --> PostgreSQL
-Redis --> PostgreSQL
-RedisQueue --> Redis
 
 ' Monitoring connections
 Prometheus --> Scraper
@@ -330,12 +338,12 @@ Users #E3F2FD
 Admins #FCE4EC
 TelegramAPI #E8F5E8
 AdminPanel #FFF3E0
-WebhookHandler #E1F5FE
+PollingService #E1F5FE
+UpdateProcessor #F3E5F5
 CommandHandlers #F3E5F5
 Scraper #E0F2F1
 NotificationService #E8EAF6
 PostgreSQL #E1F5FE
-Redis #FFF8E1
 BBSForum #E8EAF6
 FacebookHotToys #E1F5FE
 Prometheus #F1F8E9
@@ -350,6 +358,9 @@ skinparam backgroundColor #FFFFFF
 
 title Последовательность обработки новых постов и уведомлений
 
+participant "Polling Service" as PollingService
+participant "Update Processor" as UpdateProcessor
+participant "Command Handlers" as CommandHandlers
 participant "Scheduler" as Scheduler
 participant "Scraper" as Scraper
 participant "BBS Forum" as BBSForum
@@ -357,10 +368,19 @@ participant "Facebook" as Facebook
 participant "Database" as DB
 participant "Notification Service" as NotifyService
 participant "Queue Manager" as Queue
-participant "Redis Queue" as RedisQueue
 participant "Message Formatter" as Formatter
 participant "Telegram API" as TelegramAPI
 participant "Subscribers" as Users
+
+== Background Polling ==
+note over PollingService: Polls every 1-3 seconds
+PollingService -> TelegramAPI: getUpdates
+TelegramAPI -> PollingService: Updates array
+
+loop For each update
+    PollingService -> UpdateProcessor: Process update
+    UpdateProcessor -> CommandHandlers: Handle command/message
+end
 
 == Background Scraping ==
 note over Scheduler: Runs every 5 minutes
@@ -381,33 +401,30 @@ Scraper -> DB: Check for duplicates by hash
 alt New content found
     Scraper -> DB: INSERT new topics/posts
     DB -> Scraper: New post IDs
-    
+
     == Prepare Notifications ==
     Scraper -> NotifyService: Send notification request
     NotifyService -> DB: Get active subscribers
     DB -> NotifyService: Subscriber list
-    
+
     loop For each new post
         NotifyService -> Formatter: Format message
         Formatter -> NotifyService: Formatted message
-        
+
         loop For each subscriber
             NotifyService -> Queue: Add message to queue
-            Queue -> RedisQueue: Enqueue message
         end
     end
 end
 
 == Message Processing ==
 note over Queue: Background worker processes queue
-Queue -> RedisQueue: Dequeue message
-RedisQueue -> Queue: Message data
 Queue -> TelegramAPI: Send message
 TelegramAPI -> Users: Deliver notification
 
 alt Rate limit exceeded
     TelegramAPI -> Queue: Rate limit error
-    Queue -> RedisQueue: Re-queue with delay
+    Queue -> Queue: Re-queue with delay
 else Success
     TelegramAPI -> Queue: Message sent
     Queue -> DB: Update notification status
@@ -585,7 +602,7 @@ end note
 
 *Inline клавиатура:*
 - ✅ Hot Toys
-- ✅ ThreeZero  
+- ✅ ThreeZero
 - ✅ Sideshow
 - ✅ Все категории
 - 📝 Готово
@@ -640,21 +657,13 @@ end note
 ===== /admin_users
 Управление пользователями
 
-===== /admin_sources  
+===== /admin_sources
 Управление источниками
 
 ===== /admin_logs
 Просмотр логов системы
 
-=== Webhook Endpoints
-
-==== POST /webhook/telegram
-Обработка обновлений от Telegram
-
-*Заголовки:*
-- `X-Telegram-Bot-Api-Secret-Token` - секретный токен
-
-*Тело запроса:* Telegram Update JSON
+=== Admin Panel Endpoints
 
 ==== GET /health
 Проверка состояния сервиса
@@ -667,15 +676,16 @@ end note
   "timestamp": "2025-07-27T12:00:00Z",
   "bot": {
     "status": "running",
-    "last_update": "2025-07-27T11:59:45Z"
+    "last_update": "2025-07-27T11:59:45Z",
+    "polling": {
+      "status": "active",
+      "last_poll": "2025-07-27T11:59:58Z",
+      "updates_received": 1234
+    }
   },
   "database": {
     "status": "connected",
     "ping_ms": 2
-  },
-  "cache": {
-    "status": "connected",
-    "ping_ms": 1
   },
   "queue": {
     "status": "running",
@@ -691,8 +701,6 @@ end note
 ==== GET /metrics
 Метрики Prometheus
 
-=== Admin Panel Endpoints
-
 ==== GET /admin/dashboard
 Административная панель
 
@@ -704,65 +712,70 @@ end note
 
 == Конфигурация
 
-=== Переменные окружения
-
 [source,yaml]
 ----
-# Telegram Bot
-TELEGRAM_BOT_TOKEN: "your_bot_token_here"
-TELEGRAM_WEBHOOK_URL: "https://yourdomain.com/webhook/telegram"
-TELEGRAM_WEBHOOK_SECRET: "your_secret_token"
-TELEGRAM_ADMIN_IDS: "123456789,987654321" # comma-separated
+```yaml
+telegram:
+  token: "your_bot_token_here"
+  debug: false
+  polling:
+    timeout: 60
+    limit: 100
+    allowed_updates: ["message", "callback_query", "inline_query"]
 
-# Сервер
-SERVER_PORT: 8080
-SERVER_HOST: 0.0.0.0
-SERVER_READ_TIMEOUT: 30s
-SERVER_WRITE_TIMEOUT: 30s
+server:
+  host: "0.0.0.0"
+  port: 8080
+  shutdown_timeout: 30s
+  read_timeout: 10s
+  write_timeout: 10s
 
-# База данных
-DATABASE_URL: postgres://user:password@localhost:5432/telegram_bot?sslmode=disable
-DATABASE_MAX_OPEN_CONNS: 10
-DATABASE_MAX_IDLE_CONNS: 5
+database:
+  host: "localhost"
+  port: 5432
+  user: "terrier"
+  password: "your_password"
+  name: "terrier_telegram"
+  ssl_mode: "disable"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 300s
+  conn_max_idle_time: 120s
 
-# Redis
-REDIS_URL: redis://localhost:6379/0
-REDIS_PASSWORD: ""
-REDIS_DB: 0
+scraper:
+  user_agent: "Mozilla/5.0 (compatible; ToyTerrier/1.0)"
+  timeout: 30s
+  retry_attempts: 3
+  retry_delay: 5s
 
-# Парсер
-SCRAPER_INTERVAL: 5m
-SCRAPER_TIMEOUT: 30s
-SCRAPER_USER_AGENT: "ToyTerrier-Bot/1.0"
-SCRAPER_CONCURRENT_REQUESTS: 3
+facebook:
+  app_id: "your_app_id"
+  app_secret: "your_app_secret"
+  access_token: "your_access_token"
+  page_id: "your_page_id"
+  api_version: "v18.0"
 
-# Facebook API
-FACEBOOK_ACCESS_TOKEN: ""
-FACEBOOK_APP_ID: ""
-FACEBOOK_APP_SECRET: ""
-FACEBOOK_PAGE_ID: "hottoys"
+notification:
+  batch_size: 100
+  interval: 5m
+  max_retries: 3
+  retry_delay: 30s
+  queue_check_interval: 10s
 
-# Уведомления
-NOTIFICATION_BATCH_SIZE: 100
-NOTIFICATION_RATE_LIMIT: 30 # messages per second
-NOTIFICATION_RETRY_ATTEMPTS: 3
-NOTIFICATION_RETRY_DELAY: 60s
+log:
+  level: "info"
+  format: "json"
+  output: "stdout"
 
-# Логирование
-LOG_LEVEL: info
-LOG_FORMAT: json
-LOG_CONSOLE_WRITER: false
-LOG_TIME_FORMAT: rfc3339
-LOG_CALLER: true
+metrics:
+  enabled: true
+  path: "/metrics"
+  port: 9090
 
-# Мониторинг
-METRICS_ENABLED: true
-METRICS_PATH: /metrics
-
-# Безопасность
-ADMIN_USERNAME: admin
-ADMIN_PASSWORD: secure_password
-JWT_SECRET: your_jwt_secret_here
+security:
+  rate_limit: 100
+  rate_window: 60s
+```
 ----
 
 === Структура конфигурации
@@ -773,7 +786,6 @@ type Config struct {
     Telegram     TelegramConfig     `mapstructure:"telegram"`
     Server       ServerConfig       `mapstructure:"server"`
     Database     DatabaseConfig     `mapstructure:"database"`
-    Redis        RedisConfig        `mapstructure:"redis"`
     Scraper      ScraperConfig      `mapstructure:"scraper"`
     Facebook     FacebookConfig     `mapstructure:"facebook"`
     Notification NotificationConfig `mapstructure:"notification"`
@@ -783,10 +795,16 @@ type Config struct {
 }
 
 type TelegramConfig struct {
-    BotToken      string   `mapstructure:"bot_token"`
-    WebhookURL    string   `mapstructure:"webhook_url"`
-    WebhookSecret string   `mapstructure:"webhook_secret"`
-    AdminIDs      []int64  `mapstructure:"admin_ids"`
+    BotToken      string         `mapstructure:"bot_token"`
+    Debug         bool           `mapstructure:"debug"`
+    Polling       PollingConfig  `mapstructure:"polling"`
+    AdminIDs      []int64        `mapstructure:"admin_ids"`
+}
+
+type PollingConfig struct {
+    Timeout        int      `mapstructure:"timeout"`         // Polling timeout in seconds
+    Limit          int      `mapstructure:"limit"`           // Number of updates to fetch
+    AllowedUpdates []string `mapstructure:"allowed_updates"` // Types of updates to receive
 }
 
 type NotificationConfig struct {
@@ -800,9 +818,51 @@ type SecurityConfig struct {
     AdminUsername string `mapstructure:"admin_username"`
     AdminPassword string `mapstructure:"admin_password"`
     JWTSecret     string `mapstructure:"jwt_secret"`
+    RateLimit     int    `mapstructure:"rate_limit"`
+    RateWindow    string `mapstructure:"rate_window"`
 }
 
-// ... другие конфиги аналогично RSS сервису
+type ServerConfig struct {
+    Port         int           `mapstructure:"port"`
+    Host         string        `mapstructure:"host"`
+    ReadTimeout  time.Duration `mapstructure:"read_timeout"`
+    WriteTimeout time.Duration `mapstructure:"write_timeout"`
+}
+
+type DatabaseConfig struct {
+    Host            string        `mapstructure:"host"`
+    Port            int           `mapstructure:"port"`
+    User            string        `mapstructure:"user"`
+    Password        string        `mapstructure:"password"`
+    Name            string        `mapstructure:"name"`
+    SSLMode         string        `mapstructure:"ssl_mode"`
+    MaxOpenConns    int           `mapstructure:"max_open_conns"`
+    MaxIdleConns    int           `mapstructure:"max_idle_conns"`
+    ConnMaxLifetime time.Duration `mapstructure:"conn_max_lifetime"`
+    ConnMaxIdleTime time.Duration `mapstructure:"conn_max_idle_time"`
+}
+
+type ScraperConfig struct {
+
+type FacebookConfig struct {
+    AccessToken string `mapstructure:"access_token"`
+    AppID       string `mapstructure:"app_id"`
+    AppSecret   string `mapstructure:"app_secret"`
+    PageID      string `mapstructure:"page_id"`
+}
+
+type LogConfig struct {
+    Level        string `mapstructure:"level"`
+    Format       string `mapstructure:"format"`
+    ConsoleWriter bool  `mapstructure:"console_writer"`
+    TimeFormat   string `mapstructure:"time_format"`
+    Caller       bool   `mapstructure:"caller"`
+}
+
+type MetricsConfig struct {
+    Enabled bool   `mapstructure:"enabled"`
+    Path    string `mapstructure:"path"`
+}
 ----
 
 == Развертывание
@@ -818,16 +878,13 @@ services:
     build: .
     ports:
       - "8080:8080"
+      - "9090:9090"  # Metrics port
     environment:
       - DATABASE_URL=postgres://botuser:password@postgres:5432/telegram_bot?sslmode=disable
-      - REDIS_URL=redis://redis:6379/0
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_WEBHOOK_URL=${TELEGRAM_WEBHOOK_URL}
       - FACEBOOK_ACCESS_TOKEN=${FACEBOOK_ACCESS_TOKEN}
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     restart: unless-stopped
     volumes:
@@ -849,33 +906,8 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./ssl:/etc/nginx/ssl
-    depends_on:
-      - telegram-bot
-    restart: unless-stopped
-
 volumes:
   postgres_data:
-  redis_data:
 ----
 
 === Dockerfile
@@ -883,7 +915,7 @@ volumes:
 [source,dockerfile]
 ----
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 COPY go.mod go.sum ./
@@ -921,7 +953,10 @@ telegram_bot_users_total{status="active|inactive"}
 telegram_bot_subscriptions_total{category}
 telegram_bot_commands_total{command, status}
 telegram_bot_messages_sent_total{status="success|failed"}
-telegram_bot_webhook_requests_total{status}
+telegram_bot_polling_requests_total{status}
+telegram_bot_polling_duration_seconds
+telegram_bot_updates_received_total
+telegram_bot_polling_errors_total{type}
 
 # Очередь сообщений
 notification_queue_size
@@ -938,11 +973,6 @@ scraper_errors_total{source, type}
 database_connections_active
 database_connections_idle
 database_query_duration_seconds{query}
-
-# Redis метрики
-redis_commands_total{command}
-redis_command_duration_seconds{command}
-redis_queue_operations_total{operation}
 ----
 
 === Health checks
@@ -951,9 +981,9 @@ redis_queue_operations_total{operation}
 ----
 # Проверки состояния
 - HTTP server отвечает на /health
-- Telegram Bot API доступен
+- Telegram Bot API доступен через polling
+- Polling service активен и получает обновления
 - PostgreSQL соединение активно
-- Redis соединение активно
 - Очередь сообщений обрабатывается
 - Последний запуск парсера не старше 10 минут
 - Память не превышает 512MB
@@ -965,15 +995,15 @@ redis_queue_operations_total{operation}
 === Меры безопасности
 
 ==== Telegram Security
-* Проверка секретного токена webhook
 * Валидация Telegram User ID
 * Защита от спама и флуда
 * Blacklist для заблокированных пользователей
+* Secure polling with HTTPS
 
 ==== Rate Limiting
 * 5 команд в минуту на пользователя
 * 30 сообщений в секунду от бота
-* Защита webhook от DDoS
+* Polling rate limiting для избежания блокировок
 
 ==== Data Protection
 * Хеширование чувствительных данных
@@ -995,7 +1025,7 @@ redis_queue_operations_total{operation}
 * Retry механизм с экспоненциальной задержкой
 
 ==== Очередь сообщений
-* Redis-based message queue
+* Database-based message queue
 * Background workers для обработки
 * Приоритизация сообщений
 
@@ -1005,7 +1035,6 @@ redis_queue_operations_total{operation}
 * Connection pooling (max 10 соединений)
 
 ==== Кэширование
-* Redis кэш для пользовательских данных
 * In-memory кэш для конфигурации
 * Кэширование результатов парсинга
 
@@ -1023,6 +1052,11 @@ redis_queue_operations_total{operation}
 - 1000-5000 исходящих сообщений в день
 - 30 сообщений в секунду (пиковая нагрузка)
 
+# Polling
+- 1 запрос getUpdates каждые 1-3 секунды
+- 28,800-86,400 polling запросов в день
+- Среднее время ответа: 100-500ms
+
 # Парсер
 - 10 страниц форума каждые 5 минут
 - 20-100 новых постов в день
@@ -1033,6 +1067,7 @@ redis_queue_operations_total{operation}
 - CPU: 0.2-0.8 cores в среднем
 - Disk: 200MB в месяц (без логов)
 - Network: 20-100 MB/день исходящий трафик
+- Polling overhead: 10-50 MB/день дополнительно
 ----
 
 == Пользовательский опыт
@@ -1120,22 +1155,26 @@ Hot Toys представляет новую фигурку Человека-п�
 
 == Заключение
 
-Техническая спецификация описывает создание Telegram-бота для автоматического мониторинга и уведомления о новых постах с форума BBS BBICN и Facebook Hot Toys. Использование Go + Echo + PostgreSQL + Redis + Telegram Bot API обеспечивает высокую производительность, надежность и масштабируемость системы.
+Техническая спецификация описывает создание Telegram-бота для автоматического мониторинга и уведомления о новых постах с форума BBS BBICN и Facebook Hot Toys. Использование Go + Echo + PostgreSQL + Telegram Bot API обеспечивает высокую производительность, надежность и масштабируемость системы.
 
-*Ключевые преимущества решения:*
+.Ключевые преимущества решения:
 * Автоматическая рассылка уведомлений всем подписчикам
+* Простое развертывание без необходимости SSL и внешнего доступа
+* Polling подход упрощает конфигурацию и отладку
 * Гибкая система подписок по категориям
 * Type-safe работа с базой данных через sqlc
 * Высокая производительность с очередями сообщений
-* Надежное кэширование и retry механизмы
+* Надежные retry механизмы для polling и уведомлений
 * Полная контейнеризация с Docker
 * Мониторинг и метрики из коробки
 * Соблюдение этики web scraping и Telegram ToS
 
-*Рекомендации:*
+.Рекомендации:
 1. Начать с MVP для валидации концепции
 2. Постепенно добавлять источники и функциональность
-3. Уделить особое внимание rate limiting для соблюдения лимитов Telegram API
-4. Настроить мониторинг с первого дня
-5. Регулярно обновлять парсеры при изменениях в структуре источников
-6. Обеспечить GDPR-совместимость для европейских пользователей
+3. Оптимизировать polling timeout в зависимости от нагрузки (1-5 секунд)
+4. Уделить особое внимание rate limiting для соблюдения лимитов Telegram API
+5. Настроить мониторинг polling метрик с первого дня
+6. Регулярно обновлять парсеры при изменениях в структуре источников
+7. Обеспечить GDPR-совместимость для европейских пользователей
+8. Использовать graceful shutdown для корректного завершения polling
