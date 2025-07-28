@@ -8,9 +8,6 @@ import (
 	"syscall"
 	"time"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/rs/zerolog/log"
-
 	"toy-terrier-telegram/internal/bot"
 	"toy-terrier-telegram/internal/config"
 	"toy-terrier-telegram/internal/database"
@@ -18,11 +15,37 @@ import (
 	"toy-terrier-telegram/internal/services/notification"
 	"toy-terrier-telegram/internal/services/scraper"
 	"toy-terrier-telegram/internal/services/subscription"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/pflag"
 )
 
 func main() {
+	// Parse command line flags
+	configPath := pflag.String("config", "", "Path to configuration file")
+	version := pflag.Bool("version", false, "Show version information")
+	help := pflag.Bool("help", false, "Show help message")
+	pflag.Parse()
+
+	// Handle version flag
+	if *version {
+		fmt.Println("toy-terrier-bot version 1.0.0")
+		os.Exit(0)
+	}
+
+	// Handle help flag
+	if *help {
+		fmt.Println("toy-terrier-bot - Telegram bot for monitoring forum updates")
+		fmt.Println("\nUsage:")
+		fmt.Println("  toy-terrier-bot [flags]")
+		fmt.Println("\nFlags:")
+		pflag.PrintDefaults()
+		os.Exit(0)
+	}
+
 	// Load configuration
-	cfg, err := config.Load()
+	cfg, err := config.Load(*configPath)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to load configuration")
 	}

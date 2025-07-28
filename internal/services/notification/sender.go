@@ -18,9 +18,6 @@ type Service struct {
 	config *config.Config
 	db     *sql.DB
 	api    *tgbotapi.BotAPI
-
-	// Rate limiting
-	lastSendTime time.Time
 }
 
 // NewService creates a new notification service
@@ -227,7 +224,11 @@ func (s *Service) createBulkNotifications(userIDs []int, topicID int, messageTex
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			log.Error().Err(err).Msg("Failed to rollback transaction")
+		}
+	}()
 
 	stmt, err := tx.Prepare(query)
 	if err != nil {

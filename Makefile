@@ -10,6 +10,9 @@ GOMOD=$(GOCMD) mod
 BINARY_NAME=toy-terrier-bot
 BINARY_PATH=./cmd/toy-terrier-bot
 
+# Configuration
+CONFIG ?= ""
+
 # Docker parameters
 DOCKER_IMAGE=toy-terrier-bot
 DOCKER_TAG=latest
@@ -28,9 +31,17 @@ generate: ## Generate sqlc code
 
 build-full: generate build ## Generate code and build
 
-run: ## Run the application
+run: ## Run the application (usage: make run [CONFIG=path/to/config.yaml])
 	$(GOBUILD) -o $(BINARY_NAME) -v $(BINARY_PATH)
-	./$(BINARY_NAME)
+	./$(BINARY_NAME) --config=$(CONFIG)
+
+version: ## Show version
+	$(GOBUILD) -o $(BINARY_NAME) -v $(BINARY_PATH)
+	./$(BINARY_NAME) --version
+
+app-help: ## Show application help
+	$(GOBUILD) -o $(BINARY_NAME) -v $(BINARY_PATH)
+	./$(BINARY_NAME) --help
 
 test: ## Run tests
 	$(GOTEST) -v ./...
@@ -85,11 +96,9 @@ docker-compose-logs: ## Show docker-compose logs
 	docker-compose logs -f
 
 # Development operations
-dev: ## Run in development mode with hot reload
-	air
+dev: run ## Run in development mode
 
 install-tools: ## Install development tools
-	go install github.com/cosmtrek/air@latest
 	go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 

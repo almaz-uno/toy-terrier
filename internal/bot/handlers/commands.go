@@ -210,7 +210,7 @@ func (h *Handlers) handleCategories(message *tgbotapi.Message) error {
 		if !sub.IsActive {
 			status = "❌"
 		}
-		text += fmt.Sprintf("%s <b>%s</b>\n", status, sub.Name)
+		text += fmt.Sprintf("%s <b>%s</b>\n", status, sub.Name())
 	}
 
 	text += "\nИспользуйте /subscribe для управления подписками."

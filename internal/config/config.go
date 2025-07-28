@@ -100,11 +100,18 @@ type MetricsConfig struct {
 }
 
 // Load loads configuration from file and environment variables
-func Load() (*Config, error) {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./configs")
-	viper.AddConfigPath(".")
+func Load(configPath string) (*Config, error) {
+	if configPath != "" {
+		// Use specific config file if provided
+		viper.SetConfigFile(configPath)
+	} else {
+		// Use default config search paths
+		viper.SetConfigName("config")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath("./local")
+		viper.AddConfigPath("./configs")
+		viper.AddConfigPath(".")
+	}
 
 	// Set defaults
 	setDefaults()

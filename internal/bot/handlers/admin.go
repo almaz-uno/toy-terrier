@@ -103,8 +103,13 @@ func (h *Handlers) handleAdminUsers(message *tgbotapi.Message) error {
 			status = "✅"
 		}
 
+		firstName := ""
+		if user.FirstName != nil {
+			firstName = *user.FirstName
+		}
+
 		text.WriteString(fmt.Sprintf("%d. %s %s (%s)\n   ID: %d, активность: %s\n\n",
-			i+1, status, user.FirstName, username, user.TelegramID,
+			i+1, status, firstName, username, user.TelegramID,
 			formatDuration(time.Since(user.LastActivity))))
 	}
 

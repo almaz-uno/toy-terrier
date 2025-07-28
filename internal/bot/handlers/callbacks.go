@@ -70,28 +70,34 @@ func (h *Handlers) handleSubscribeCallback(query *tgbotapi.CallbackQuery, parts 
 			log.Error().Err(err).Msg("Failed to unsubscribe")
 			return h.answerCallbackQuery(query.ID, "❌ Ошибка отписки")
 		}
-		h.answerCallbackQuery(query.ID, "✅ Отписка выполнена")
+		return h.answerCallbackQuery(query.ID, "✅ Отписка выполнена")
 	} else {
 		err = h.subscription.Subscribe(userID, categoryID)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to subscribe")
 			return h.answerCallbackQuery(query.ID, "❌ Ошибка подписки")
 		}
-		h.answerCallbackQuery(query.ID, "✅ Подписка оформлена")
 	}
 
 	// Update keyboard
 	categories, err := h.subscription.GetActiveCategories()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get categories")
-		return nil
+		return h.answerCallbackQuery(query.ID, "❌ Ошибка обновления")
 	}
 
 	keyboard := h.buildCategoriesKeyboard(categories, userID, "subscribe")
 
 	edit := tgbotapi.NewEditMessageReplyMarkup(query.Message.Chat.ID, query.Message.MessageID, keyboard)
-	_, err = h.api.Send(edit)
-	return err
+	if _, err = h.api.Send(edit); err != nil {
+		log.Error().Err(err).Msg("Failed to edit message")
+	}
+
+	if isSubscribed {
+		return h.answerCallbackQuery(query.ID, "✅ Отписка выполнена")
+	} else {
+		return h.answerCallbackQuery(query.ID, "✅ Подписка оформлена")
+	}
 }
 
 // handleUnsubscribeCallback handles unsubscribe callbacks
@@ -112,7 +118,9 @@ func (h *Handlers) handleUnsubscribeCallback(query *tgbotapi.CallbackQuery, part
 		text := "✅ <b>Вы отписались от всех уведомлений</b>\n\nИспользуйте /subscribe для повторной подписки."
 		edit := tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, text)
 		edit.ParseMode = tgbotapi.ModeHTML
-		_, err = h.api.Send(edit)
+		if _, err := h.api.Send(edit); err != nil {
+			log.Error().Err(err).Msg("Failed to edit message")
+		}
 
 		return h.answerCallbackQuery(query.ID, "✅ Отписка выполнена")
 	}
@@ -137,7 +145,10 @@ func (h *Handlers) handleCancelCallback(query *tgbotapi.CallbackQuery) error {
 	text := "❌ Операция отменена"
 	edit := tgbotapi.NewEditMessageText(query.Message.Chat.ID, query.Message.MessageID, text)
 	edit.ParseMode = tgbotapi.ModeHTML
-	h.api.Send(edit)
+	_, err := h.api.Send(edit)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to edit message")
+	}
 
 	return h.answerCallbackQuery(query.ID, "Операция отменена")
 }
