@@ -1,0 +1,52 @@
+app:
+  name: "toy-terrier-telegram"
+  version: "1.0.0"
+  environment: "development"
+
+database:
+  host: "localhost"
+  port: 5432
+  user: "postgres"
+  password: "password"
+  name: "toy_terrier"
+  ssl_mode: "disable"
+  migrations_path: "./internal/database/migrations"
+
+telegram:
+  bot_token: "YOUR_BOT_TOKEN_HERE"
+  polling:
+    timeout: 60
+    limit: 100
+    allowed_updates: ["message", "callback_query"]
+  admin_ids: [123456789]
+
+notification:
+  batch_size: 10
+  interval: "30s"
+  max_retries: 3
+  retry_delay: "1m"
+  queue_check_interval: "10s"
+
+scraper:
+  scrape_interval: "5m"
+  timeout_seconds: 30
+  request_delay: "1s"
+  user_agent: "Mozilla/5.0 (compatible; ToyTerrierBot/1.0)"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  read_timeout: "30s"
+  write_timeout: "30s"
+
+security:
+  admin_username: "admin"
+  admin_password: "admin123"
+  jwt_secret: "your-jwt-secret-here"
+  rate_limit: 100
+  rate_window: "1m"
+
+logging:
+  level: "info"
+  format: "json"
+  output: "stdout"

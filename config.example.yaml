@@ -1,0 +1,63 @@
+telegram:
+  bot_token: "YOUR_BOT_TOKEN_HERE"
+  debug: false
+  polling:
+    timeout: 60
+    limit: 100
+    allowed_updates: ["message", "callback_query"]
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  shutdown_timeout: 30s
+  read_timeout: 10s
+  write_timeout: 10s
+
+database:
+  host: "localhost"
+  port: 5432
+  user: "terrier"
+  password: "your_password"
+  name: "terrier_telegram"
+  ssl_mode: "disable"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 300s
+  conn_max_idle_time: 120s
+
+scraper:
+  user_agent: "Mozilla/5.0 (compatible; ToyTerrier/1.0)"
+  timeout: 30s
+  retry_attempts: 3
+  retry_delay: 5s
+  request_delay: 2s
+  interval: 5m
+
+facebook:
+  app_id: "your_app_id"
+  app_secret: "your_app_secret"
+  access_token: "your_access_token"
+  page_id: "hottoys"
+  api_version: "v18.0"
+
+notification:
+  batch_size: 100
+  interval: 5m
+  max_retries: 3
+  retry_delay: 30s
+  queue_check_interval: 10s
+
+log:
+  level: "info"
+  format: "json"
+  output: "stdout"
+
+metrics:
+  enabled: true
+  path: "/metrics"
+  port: 9090
+
+security:
+  rate_limit: 100
+  rate_window: 60s
+  admin_ids: [123456789] # Replace with your Telegram admin user IDs
