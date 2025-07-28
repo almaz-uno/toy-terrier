@@ -11,9 +11,9 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/rs/zerolog/log"
 
-	"toy-terrier-telegram/internal/config"
-	"toy-terrier-telegram/internal/models"
-	"toy-terrier-telegram/internal/services/notification"
+	"github.com/almaz-uno/toy-terrier/internal/config"
+	"github.com/almaz-uno/toy-terrier/internal/models"
+	"github.com/almaz-uno/toy-terrier/internal/services/notification"
 )
 
 // Service handles forum scraping operations

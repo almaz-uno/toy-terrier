@@ -8,7 +8,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/rs/zerolog/log"
 
-	"toy-terrier-telegram/internal/models"
+	"github.com/almaz-uno/toy-terrier/internal/models"
 )
 
 // handleCallbackQuery processes callback queries from inline keyboards

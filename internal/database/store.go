@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	db "toy-terrier-telegram/internal/database/sqlc"
+	db "github.com/almaz-uno/toy-terrier/internal/database/sqlc"
 )
 
 // Store wraps sqlc queries with transaction support

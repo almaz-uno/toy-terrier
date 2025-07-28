@@ -9,8 +9,8 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/rs/zerolog/log"
 
-	"toy-terrier-telegram/internal/config"
-	"toy-terrier-telegram/internal/models"
+	"github.com/almaz-uno/toy-terrier/internal/config"
+	"github.com/almaz-uno/toy-terrier/internal/models"
 )
 
 // Service handles notification operations

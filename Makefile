@@ -1,4 +1,4 @@
-.PHONY: build run test clean lint docker-build docker-run help
+.PHONY: build run test clean lint docker-build docker-run help generate build-full version app-help test-coverage deps migrate-up migrate-down migrate-create docker-stop docker-compose-up docker-compose-down docker-compose-logs dev install-tools release git-hooks
 
 # Go parameters
 GOCMD=go
@@ -23,16 +23,17 @@ help: ## Show this help message
 	@echo 'Targets:'
 	@egrep '^(.+)\:\ ##\ (.+)' $(MAKEFILE_LIST) | column -t -c 2 -s ':#'
 
-build: ## Build the application
+$(BINARY_NAME): ## Build the application
 	$(GOBUILD) -o $(BINARY_NAME) -v $(BINARY_PATH)
+
+build: $(BINARY_NAME) ## Build the binary (alias for $(BINARY_NAME))
 
 generate: ## Generate sqlc code
 	sqlc generate
 
 build-full: generate build ## Generate code and build
 
-run: ## Run the application (usage: make run [CONFIG=path/to/config.yaml])
-	$(GOBUILD) -o $(BINARY_NAME) -v $(BINARY_PATH)
+run: build ## Run the application (usage: make run [CONFIG=path/to/config.yaml])
 	./$(BINARY_NAME) --config=$(CONFIG)
 
 version: ## Show version

@@ -1,4 +1,4 @@
-module toy-terrier-telegram
+module github.com/almaz-uno/toy-terrier
 
 go 1.24
 
@@ -9,6 +9,7 @@ require (
 	github.com/labstack/echo/v4 v4.11.4
 	github.com/lib/pq v1.10.9
 	github.com/rs/zerolog v1.32.0
+	github.com/spf13/pflag v1.0.7
 	github.com/spf13/viper v1.18.2
 )
 
@@ -30,7 +31,6 @@ require (
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
-	github.com/spf13/pflag v1.0.7 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect

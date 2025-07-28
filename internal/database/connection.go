@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"toy-terrier-telegram/internal/config"
+	"github.com/almaz-uno/toy-terrier/internal/config"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"

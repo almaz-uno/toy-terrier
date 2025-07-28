@@ -8,9 +8,9 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/rs/zerolog/log"
 
-	"toy-terrier-telegram/internal/database"
-	db "toy-terrier-telegram/internal/database/sqlc"
-	"toy-terrier-telegram/internal/models"
+	"github.com/almaz-uno/toy-terrier/internal/database"
+	db "github.com/almaz-uno/toy-terrier/internal/database/sqlc"
+	"github.com/almaz-uno/toy-terrier/internal/models"
 )
 
 // Manager handles subscription operations

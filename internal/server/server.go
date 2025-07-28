@@ -9,9 +9,9 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rs/zerolog/log"
 
-	"toy-terrier-telegram/internal/config"
-	"toy-terrier-telegram/internal/services/notification"
-	"toy-terrier-telegram/internal/services/scraper"
+	"github.com/almaz-uno/toy-terrier/internal/config"
+	"github.com/almaz-uno/toy-terrier/internal/services/notification"
+	"github.com/almaz-uno/toy-terrier/internal/services/scraper"
 )
 
 // Server represents HTTP server
