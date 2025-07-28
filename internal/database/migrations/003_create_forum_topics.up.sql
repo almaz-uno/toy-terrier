@@ -25,9 +25,3 @@ CREATE INDEX IF NOT EXISTS idx_topics_content_hash ON forum_topics(content_hash)
 CREATE INDEX IF NOT EXISTS idx_topics_created_at ON forum_topics(created_at);
 CREATE INDEX IF NOT EXISTS idx_topics_is_notified ON forum_topics(is_notified);
 CREATE INDEX IF NOT EXISTS idx_topics_last_post_time ON forum_topics(last_post_time);
-
--- Create trigger for updated_at
-CREATE TRIGGER update_forum_topics_updated_at
-    BEFORE UPDATE ON forum_topics
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();

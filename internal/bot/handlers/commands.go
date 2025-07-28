@@ -153,7 +153,7 @@ func (h *Handlers) handleSubscribe(message *tgbotapi.Message) error {
 		return h.sendMessage(message.Chat.ID, "❌ Нет доступных категорий для подписки")
 	}
 
-	keyboard := h.buildCategoriesKeyboard(categories, int(message.From.ID), "subscribe")
+	keyboard := h.buildCategoriesKeyboard(categories, message.From.ID, "subscribe")
 
 	text := `<b>📝 Подписка на обновления</b>
 
@@ -194,7 +194,7 @@ func (h *Handlers) handleUnsubscribe(message *tgbotapi.Message) error {
 
 // handleCategories handles /categories command
 func (h *Handlers) handleCategories(message *tgbotapi.Message) error {
-	subscriptions, err := h.subscription.GetUserSubscriptions(int(message.From.ID))
+	subscriptions, err := h.subscription.GetUserSubscriptions(message.From.ID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user subscriptions")
 		return h.sendMessage(message.Chat.ID, "❌ Ошибка при получении подписок")
@@ -246,7 +246,7 @@ func (h *Handlers) handleSettings(message *tgbotapi.Message) error {
 
 // handleStatus handles /status command
 func (h *Handlers) handleStatus(message *tgbotapi.Message) error {
-	subscriptions, err := h.subscription.GetUserSubscriptions(int(message.From.ID))
+	subscriptions, err := h.subscription.GetUserSubscriptions(message.From.ID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get user subscriptions")
 		return h.sendMessage(message.Chat.ID, "❌ Ошибка при получении подписок")

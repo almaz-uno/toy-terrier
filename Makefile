@@ -23,6 +23,11 @@ help: ## Show this help message
 build: ## Build the application
 	$(GOBUILD) -o $(BINARY_NAME) -v $(BINARY_PATH)
 
+generate: ## Generate sqlc code
+	sqlc generate
+
+build-full: generate build ## Generate code and build
+
 run: ## Run the application
 	$(GOBUILD) -o $(BINARY_NAME) -v $(BINARY_PATH)
 	./$(BINARY_NAME)

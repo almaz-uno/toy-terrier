@@ -7,6 +7,8 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/rs/zerolog/log"
+
+	"toy-terrier-telegram/internal/models"
 )
 
 // handleCallbackQuery processes callback queries from inline keyboards
@@ -53,7 +55,7 @@ func (h *Handlers) handleSubscribeCallback(query *tgbotapi.CallbackQuery, parts 
 		return h.answerCallbackQuery(query.ID, "❌ Неверный ID категории")
 	}
 
-	userID := int(query.From.ID)
+	userID := query.From.ID
 
 	// Toggle subscription
 	isSubscribed, err := h.subscription.IsUserSubscribed(userID, categoryID)
@@ -99,7 +101,7 @@ func (h *Handlers) handleUnsubscribeCallback(query *tgbotapi.CallbackQuery, part
 	}
 
 	if parts[1] == "all" {
-		userID := int(query.From.ID)
+		userID := query.From.ID
 		err := h.subscription.UnsubscribeFromAll(userID)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to unsubscribe from all")
@@ -149,7 +151,7 @@ func (h *Handlers) answerCallbackQuery(callbackID string, text string) error {
 }
 
 // buildCategoriesKeyboard builds inline keyboard for categories
-func (h *Handlers) buildCategoriesKeyboard(categories []interface{}, userID int, action string) tgbotapi.InlineKeyboardMarkup {
+func (h *Handlers) buildCategoriesKeyboard(categories []*models.Category, userID int64, action string) tgbotapi.InlineKeyboardMarkup {
 	var rows [][]tgbotapi.InlineKeyboardButton
 
 	// This is a placeholder - in real implementation, you'd need to define proper category structure

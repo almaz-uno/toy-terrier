@@ -85,3 +85,20 @@ type SystemStats struct {
 	LastScrapedAt       *time.Time        `json:"last_scraped_at"`
 	UptimeStart         time.Time         `json:"uptime_start"`
 }
+
+// UserSubscription represents a subscription with category info for API responses
+type UserSubscription struct {
+	ID           int       `json:"id"`
+	UserID       int       `json:"user_id"`
+	CategoryID   int       `json:"category_id"`
+	CategoryName string    `json:"category_name"`
+	CategorySlug string    `json:"category_slug"`
+	IsActive     bool      `json:"is_active"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+// Name returns the category name for backwards compatibility
+func (us *UserSubscription) Name() string {
+	return us.CategoryName
+}

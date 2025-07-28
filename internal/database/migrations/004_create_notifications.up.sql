@@ -33,9 +33,3 @@ CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created
 
 CREATE INDEX IF NOT EXISTS idx_user_settings_user_id ON user_settings(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_settings_key ON user_settings(setting_key);
-
--- Create trigger for updated_at
-CREATE TRIGGER update_user_settings_updated_at
-    BEFORE UPDATE ON user_settings
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
