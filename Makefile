@@ -1,4 +1,4 @@
-.PHONY: build run test clean lint docker-build docker-run help generate build-full version app-help test-coverage deps migrate-up migrate-down migrate-create docker-stop docker-compose-up docker-compose-down docker-compose-logs dev install-tools release git-hooks
+.PHONY: build run test clean lint docker-build docker-run help generate build-full version app-help test-coverage deps env-setup migrate-up migrate-down migrate-create docker-stop docker-compose-up docker-compose-down docker-compose-logs dev install-tools release git-hooks
 
 # Go parameters
 GOCMD=go
@@ -11,7 +11,8 @@ BINARY_NAME=toy-terrier-bot
 BINARY_PATH=./cmd/toy-terrier-bot
 
 # Configuration
-CONFIG ?= ""
+CONFIG ?= config.yaml
+ENV_FILE ?= .env
 
 # Docker parameters
 DOCKER_IMAGE=toy-terrier-bot
@@ -33,16 +34,30 @@ generate: ## Generate sqlc code
 
 build-full: generate build ## Generate code and build
 
-run: build ## Run the application (usage: make run [CONFIG=path/to/config.yaml])
-	./$(BINARY_NAME) --config=$(CONFIG)
+run: build ## Run the application (usage: make run [CONFIG=path/to/config.yaml] [ENV_FILE=path/to/.env])
+	@if [ -f "$(ENV_FILE)" ]; then \
+		echo "Loading environment variables from $(ENV_FILE)"; \
+		export $$(grep -v '^#' $(ENV_FILE) | xargs) && ./$(BINARY_NAME) --config=$(CONFIG); \
+	else \
+		echo "Environment file $(ENV_FILE) not found, running without env file"; \
+		./$(BINARY_NAME) --config=$(CONFIG); \
+	fi
 
 version: ## Show version
 	$(GOBUILD) -o $(BINARY_NAME) -v $(BINARY_PATH)
-	./$(BINARY_NAME) --version
+	@if [ -f "$(ENV_FILE)" ]; then \
+		export $$(grep -v '^#' $(ENV_FILE) | xargs) && ./$(BINARY_NAME) --version; \
+	else \
+		./$(BINARY_NAME) --version; \
+	fi
 
 app-help: ## Show application help
 	$(GOBUILD) -o $(BINARY_NAME) -v $(BINARY_PATH)
-	./$(BINARY_NAME) --help
+	@if [ -f "$(ENV_FILE)" ]; then \
+		export $$(grep -v '^#' $(ENV_FILE) | xargs) && ./$(BINARY_NAME) --help; \
+	else \
+		./$(BINARY_NAME) --help; \
+	fi
 
 test: ## Run tests
 	$(GOTEST) -v ./...
@@ -62,6 +77,20 @@ lint: ## Run linter
 deps: ## Download dependencies
 	$(GOMOD) download
 	$(GOMOD) tidy
+
+env-setup: ## Create .env file from .env.example
+	@if [ ! -f ".env" ]; then \
+		if [ -f ".env.example" ]; then \
+			cp .env.example .env; \
+			echo "Created .env file from .env.example"; \
+			echo "Please edit .env file with your actual values"; \
+		else \
+			echo ".env.example file not found"; \
+			exit 1; \
+		fi; \
+	else \
+		echo ".env file already exists"; \
+	fi
 
 # Database operations
 migrate-up: ## Run database migrations up

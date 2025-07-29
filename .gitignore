@@ -85,3 +85,6 @@ docs/build/
 # Local development
 .local/
 
+# Environment variables
+.env
+

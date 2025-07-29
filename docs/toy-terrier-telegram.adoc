@@ -922,7 +922,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o bot cmd/bot/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o toy-terrier-bot cmd/toy-terrier-bot/main.go
 
 # Runtime stage
 FROM alpine:latest

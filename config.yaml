@@ -4,16 +4,16 @@ app:
   environment: "development"
 
 database:
-  host: "localhost"
-  port: 5432
-  user: "postgres"
-  password: "password"
-  name: "toy_terrier"
+  host: ""  # Will be set via DATABASE_HOST environment variable
+  port: 0   # Will be set via DATABASE_PORT environment variable
+  user: ""  # Will be set via DATABASE_USER environment variable
+  password: ""  # Will be set via DATABASE_PASSWORD environment variable
+  name: ""  # Will be set via DATABASE_NAME environment variable
   ssl_mode: "disable"
   migrations_path: "./internal/database/migrations"
 
 telegram:
-  bot_token: "YOUR_BOT_TOKEN_HERE"
+  bot_token: ""  # Will be set via TELEGRAM_BOT_TOKEN environment variable
   polling:
     timeout: 60
     limit: 100
@@ -35,7 +35,7 @@ scraper:
 
 server:
   host: "0.0.0.0"
-  port: 8080
+  port: 0  # Will be set via SERVER_PORT environment variable
   read_timeout: "30s"
   write_timeout: "30s"
 
